@@ -20,9 +20,11 @@ import {
   buildCodexResponsesRequestFromChatCompletions,
   buildCodexResponsesRequestFromResponses,
   collectTextFromCodexEvents,
+  collectToolCallsFromCodexEvents,
   createChatCompletion,
   createChatCompletionChunk,
   createChatCompletionDoneChunk,
+  createChatCompletionToolCallChunk,
   createOpenAIResponsesOutput,
   normalizeModelName,
 } from "./transform.js";
@@ -97,7 +99,7 @@ export async function registerRoutes(app: FastifyInstance) {
     logIgnoredParameters(
       request.log,
       (request.body ?? {}) as Record<string, unknown>,
-      ["model", "instructions", "input", "stream"],
+      ["model", "instructions", "input", "stream", "tools", "tool_choice"],
     );
 
     const body = buildCodexResponsesRequestFromResponses(request.body ?? {});
@@ -145,7 +147,7 @@ export async function registerRoutes(app: FastifyInstance) {
       logIgnoredParameters(
         request.log,
         (request.body ?? {}) as Record<string, unknown>,
-        ["model", "messages", "stream"],
+        ["model", "messages", "stream", "tools", "tool_choice"],
       );
 
       const body = buildCodexResponsesRequestFromChatCompletions(request.body ?? {});
@@ -153,6 +155,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
       if (request.body?.stream) {
         const responseId = `chatcmpl_${Date.now()}`;
+        let emittedToolCall = false;
 
         reply.hijack();
         reply.raw.writeHead(200, {
@@ -166,8 +169,47 @@ export async function registerRoutes(app: FastifyInstance) {
             if (event.type === "response.output_text.delta" && event.delta) {
               writeSSE(reply, createChatCompletionChunk(responseId, model, event.delta));
             }
+            if (event.type === "response.output_item.added" && event.item?.type === "function_call") {
+              const callId = event.item.call_id;
+              const name = event.item.name;
+              if (typeof callId === "string" && typeof name === "string") {
+                emittedToolCall = true;
+                writeSSE(
+                  reply,
+                  createChatCompletionToolCallChunk(
+                    responseId,
+                    model,
+                    event.output_index ?? 0,
+                    {
+                      id: callId,
+                      type: "function",
+                      function: { name, arguments: "" },
+                    },
+                  ),
+                );
+              }
+            }
+            if (event.type === "response.function_call_arguments.delta" && event.delta) {
+              emittedToolCall = true;
+              writeSSE(
+                reply,
+                createChatCompletionToolCallChunk(
+                  responseId,
+                  model,
+                  event.output_index ?? 0,
+                  { function: { arguments: event.delta } },
+                ),
+              );
+            }
             if (event.type === "response.completed") {
-              writeSSE(reply, createChatCompletionDoneChunk(responseId, model));
+              writeSSE(
+                reply,
+                createChatCompletionDoneChunk(
+                  responseId,
+                  model,
+                  emittedToolCall ? "tool_calls" : "stop",
+                ),
+              );
             }
           });
 
@@ -184,6 +226,7 @@ export async function registerRoutes(app: FastifyInstance) {
 
       const events = await collectCodexResponseEvents(body);
       const text = collectTextFromCodexEvents(events);
+      const toolCalls = collectToolCallsFromCodexEvents(events);
       const responseCompletedEvent = events.find((event) => event.type === "response.completed");
       const responseObject = responseCompletedEvent?.response as Record<string, unknown> | undefined;
       const responseIdValue = responseObject?.id;
@@ -192,7 +235,7 @@ export async function registerRoutes(app: FastifyInstance) {
           ? responseIdValue
           : `chatcmpl_${Date.now()}`;
 
-      return createChatCompletion(responseId, model, text);
+      return createChatCompletion(responseId, model, text, toolCalls);
     },
   );
 }

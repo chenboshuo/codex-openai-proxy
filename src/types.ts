@@ -14,27 +14,69 @@ export type OpenAIMessageContentPart =
       text: string;
     };
 
+export type OpenAIFunctionTool = {
+  type: "function";
+  function: {
+    name: string;
+    description?: string;
+    parameters?: Record<string, unknown>;
+    strict?: boolean;
+  };
+};
+
+export type OpenAIToolCall = {
+  id: string;
+  type: "function";
+  function: {
+    name: string;
+    arguments: string;
+  };
+};
+
 export type OpenAIChatMessage = {
   role: "system" | "user" | "assistant" | "tool";
   content?: string | OpenAIMessageContentPart[];
   tool_call_id?: string;
+  tool_calls?: OpenAIToolCall[];
 };
 
-export type OpenAIResponsesInputMessage = {
-  type: "message";
-  role: "system" | "user" | "assistant" | "tool";
-  content: Array<{
-    type: "input_text" | "output_text";
-    text: string;
-  }>;
+export type OpenAIResponsesInputItem =
+  | {
+      type: "message";
+      role: "system" | "user" | "assistant";
+      content: Array<{
+        type: "input_text" | "output_text";
+        text: string;
+      }>;
+    }
+  | {
+      type: "function_call";
+      call_id: string;
+      name: string;
+      arguments: string;
+    }
+  | {
+      type: "function_call_output";
+      call_id: string;
+      output: string;
+    };
+
+export type CodexFunctionTool = {
+  type: "function";
+  name: string;
+  description?: string;
+  parameters: Record<string, unknown>;
+  strict?: boolean;
 };
 
 export type OpenAIResponsesRequest = {
   model?: string;
   instructions?: string;
-  input?: OpenAIResponsesInputMessage[];
+  input?: OpenAIResponsesInputItem[];
   stream?: boolean;
   temperature?: number;
+  tools?: CodexFunctionTool[];
+  tool_choice?: "auto" | "none" | "required" | Record<string, unknown>;
 };
 
 export type OpenAIChatCompletionsRequest = {
@@ -42,6 +84,8 @@ export type OpenAIChatCompletionsRequest = {
   messages?: OpenAIChatMessage[];
   stream?: boolean;
   temperature?: number;
+  tools?: OpenAIFunctionTool[];
+  tool_choice?: "auto" | "none" | "required" | Record<string, unknown>;
 };
 
 export type CodexResponsesRequest = {
@@ -49,13 +93,14 @@ export type CodexResponsesRequest = {
   store: false;
   stream: true;
   instructions?: string;
-  input: OpenAIResponsesInputMessage[];
+  input: OpenAIResponsesInputItem[];
   text: {
     verbosity: "low" | "medium" | "high";
   };
   include: string[];
   prompt_cache_key?: string;
-  tool_choice: "auto";
+  tools?: CodexFunctionTool[];
+  tool_choice: "auto" | "none" | "required" | Record<string, unknown>;
   parallel_tool_calls: boolean;
 };
 
@@ -93,6 +138,19 @@ export type CodexEvent =
   | {
       type: "response.output_item.done";
       item?: Record<string, unknown>;
+      [key: string]: unknown;
+    }
+  | {
+      type: "response.output_item.added";
+      output_index?: number;
+      item?: Record<string, unknown>;
+      [key: string]: unknown;
+    }
+  | {
+      type: "response.function_call_arguments.delta";
+      output_index?: number;
+      item_id?: string;
+      delta?: string;
       [key: string]: unknown;
     }
   | {
