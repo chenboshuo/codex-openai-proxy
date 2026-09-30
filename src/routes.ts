@@ -30,6 +30,10 @@ import {
 } from "./transform.js";
 import type { CodexEvent, OpenAIChatCompletionsRequest, OpenAIResponsesRequest } from "./types.js";
 
+// Official OpenAI model IDs are lowercase. Keep these visible even when the Codex
+// model catalog has not yet listed them for this client version.
+const GPT_6_MODEL_IDS = ["gpt-6-astra", "gpt-6.1-sol", "gpt-6-luna", "gpt-6-sol"];
+
 function writeSSE(reply: FastifyReply, data: unknown) {
   reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
 }
@@ -81,13 +85,16 @@ export async function registerRoutes(app: FastifyInstance) {
 
   app.get("/v1/models", async () => {
     const result = await fetchCodexModels();
-    const items =
-      result.models?.map((model) => ({
-        id: model.slug,
-        object: "model",
-        created: 0,
-        owned_by: "chatgpt-codex",
-      })) ?? [];
+    const modelIds = new Set([
+      ...GPT_6_MODEL_IDS,
+      ...(result.models?.map((model) => model.slug) ?? []),
+    ]);
+    const items = [...modelIds].map((id) => ({
+      id,
+      object: "model",
+      created: 0,
+      owned_by: "chatgpt-codex",
+    }));
 
     return {
       object: "list",

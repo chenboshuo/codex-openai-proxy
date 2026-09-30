@@ -110,6 +110,10 @@ List models:
 curl http://127.0.0.1:8787/v1/models
 ```
 
+The response includes the published GPT-6 IDs (`gpt-6-astra`, `gpt-6.1-sol`,
+`gpt-6-luna`, and the earlier `gpt-6-sol`) alongside the Codex model catalog.
+Listing an ID does not guarantee that the connected Codex account can use it.
+
 Root info page:
 
 ```bash
