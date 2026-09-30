@@ -19,7 +19,7 @@
 
 - Node.js 18+
 - 本机已经登录 Codex / ChatGPT，并存在认证文件
-- 默认认证文件路径：`~/.codex/auth.json`
+- 默认认证文件路径：设置 `CODEX_HOME` 时使用 `$CODEX_HOME/auth.json`，否则使用 `~/.codex/auth.json`
 
 可以先确认认证文件是否存在：
 
@@ -57,7 +57,7 @@ npm run dev
 
 ## 启动参数
 
-本项目现在只支持命令行参数，不再读取环境变量。
+本项目使用命令行参数配置服务，仅通过 `CODEX_HOME` 定位 Codex 默认的 `auth.json`；`--auth-file` 的优先级更高。
 
 查看帮助：
 
@@ -69,7 +69,7 @@ npx @thkdog/codex-openai-proxy --help
 
 - `-H, --host <host>`：监听地址，默认 `127.0.0.1`
 - `-p, --port <port>`：监听端口，默认 `8787`
-- `-a, --auth-file <path>`：认证文件路径，默认 `~/.codex/auth.json`
+- `-a, --auth-file <path>`：认证文件路径，设置 `CODEX_HOME` 时默认为 `$CODEX_HOME/auth.json`，否则默认为 `~/.codex/auth.json`
 
 示例：
 

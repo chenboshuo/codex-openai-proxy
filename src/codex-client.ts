@@ -22,8 +22,8 @@ export function configureCodexClient(options: { authFilePath?: string }) {
   configuredAuthFilePath = options.authFilePath;
 }
 
-function buildBaseHeaders() {
-  const auth = readCodexAuth(configuredAuthFilePath);
+async function buildBaseHeaders() {
+  const auth = await readCodexAuth(configuredAuthFilePath);
 
   return {
     Authorization: `Bearer ${auth.accessToken}`,
@@ -35,7 +35,7 @@ function buildBaseHeaders() {
 
 export async function fetchCodexModels() {
   const response = await fetch(`${CODEX_BASE_URL}/codex/models?client_version=0.115.0`, {
-    headers: buildBaseHeaders(),
+    headers: await buildBaseHeaders(),
   });
 
   if (!response.ok) {
@@ -47,7 +47,7 @@ export async function fetchCodexModels() {
 
 export async function collectCodexResponseEvents(body: CodexResponsesRequest) {
   const requestId = createRequestId();
-  const headers = buildBaseHeaders();
+  const headers = await buildBaseHeaders();
   const ws = new WebSocket(`${CODEX_BASE_URL.replace("https://", "wss://")}/codex/responses`, {
     headers: {
       ...headers,
@@ -114,7 +114,7 @@ export async function streamCodexResponseToSSE(
   onEvent: (event: CodexEvent) => void,
 ) {
   const requestId = createRequestId();
-  const headers = buildBaseHeaders();
+  const headers = await buildBaseHeaders();
   const ws = new WebSocket(`${CODEX_BASE_URL.replace("https://", "wss://")}/codex/responses`, {
     headers: {
       ...headers,

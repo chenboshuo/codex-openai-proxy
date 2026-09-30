@@ -19,7 +19,7 @@ Currently supported:
 
 - Node.js 18+
 - You are already signed in to Codex / ChatGPT on this machine
-- Default auth file path: `~/.codex/auth.json`
+- Default auth file path: `$CODEX_HOME/auth.json` when `CODEX_HOME` is set; otherwise `~/.codex/auth.json`
 
 You can verify the auth file exists:
 
@@ -57,7 +57,7 @@ On startup, the server prints:
 
 ## CLI Options
 
-This project uses command-line arguments only and does not read environment variables.
+This project uses command-line arguments for server configuration. It reads `CODEX_HOME` only to locate Codex's default `auth.json`; `--auth-file` takes precedence.
 
 Show help:
 
@@ -69,7 +69,7 @@ Available options:
 
 - `-H, --host <host>`: listen host, default `127.0.0.1`
 - `-p, --port <port>`: listen port, default `8787`
-- `-a, --auth-file <path>`: auth file path, default `~/.codex/auth.json`
+- `-a, --auth-file <path>`: auth file path, default `$CODEX_HOME/auth.json` when set, otherwise `~/.codex/auth.json`
 
 Examples:
 
