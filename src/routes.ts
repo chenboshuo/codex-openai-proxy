@@ -30,9 +30,16 @@ import {
 } from "./transform.js";
 import type { CodexEvent, OpenAIChatCompletionsRequest, OpenAIResponsesRequest } from "./types.js";
 
-// Official OpenAI model IDs are lowercase. Keep these visible even when the Codex
-// model catalog has not yet listed them for this client version.
-const GPT_6_MODEL_IDS = ["gpt-6-astra", "gpt-6.1-sol", "gpt-6-luna", "gpt-6-sol"];
+// Known OpenAI GPT-6 / 6.1 model IDs are lowercase. Keep these visible even when
+// the Codex model catalog has not yet listed them for this client version.
+const GPT_6_MODEL_IDS = [
+  "gpt-6-astra",
+  "gpt-6.1-sol",
+  "gpt-6.1-terra",
+  "gpt-6.1-luna",
+  "gpt-6-luna",
+  "gpt-6-sol",
+];
 
 function writeSSE(reply: FastifyReply, data: unknown) {
   reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
